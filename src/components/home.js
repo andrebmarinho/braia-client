@@ -290,9 +290,13 @@ const Home = () => {
     ];
 
     const generateDosesButtons = async (rmd) => {
-        const 
+        const response = await DoseService.getByRmd(rmd, currentDate);
+        const doses = response.data.result;
+
         const fabBtns = [...Array(parseInt(rmd.frequency, 10)).keys()].map(f => {
             const btnName = 'D' + (f + 1);
+
+            const appliedDose = doses.find((doseName) => doseName === btnName);
 
             return(
                 <Fab key={'fabfreq' + f} size='small' sx={f !== 0 ? { ml: 1 } : {}}>
