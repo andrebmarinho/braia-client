@@ -23,6 +23,10 @@ const pages = [
         path: 'remedies'
     },
     {
+        name: 'Exames',
+        path: 'exams'
+    },
+    {
         name: 'Estatísticas',
         path: 'stats'
     }

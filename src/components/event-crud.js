@@ -31,7 +31,7 @@ const EventCrud = () => {
         retrieveEvents(page);
     }, [page, refreshData]);
 
-    const renderCells = (params) => {
+    const renderActionCells = (params) => {
         return (
             <Grid
                 container
@@ -145,7 +145,7 @@ const EventCrud = () => {
             field: 'description',
             headerName: 'Evento',
             flex: 1,
-            renderCell: renderCells
+            renderCell: renderActionCells
         }
     ];
 

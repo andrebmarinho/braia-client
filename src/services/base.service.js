@@ -5,15 +5,21 @@ export default class BaseService {
         this.prefix = urlPrefix;
     }
 
-    get(page = 0, limitPerPage = null, description = null) {
+    get(page = 0, limitPerPage = null, otherFields = null) {
         let path = `${this.prefix}?page=${page}`;
         
         if (limitPerPage) {
             path += `&limitPerPage=${limitPerPage}`
         }
         
-        if (description) {
-            path += `&description=${description}`
+        if (otherFields) {
+            Object.entries(otherFields).forEach(pair => {
+                const key = pair[0];
+                const value = pair[1];
+                if (value) {
+                    path += `&${key}=${value}`;
+                }
+            });
         }
 
         return http.get(path);

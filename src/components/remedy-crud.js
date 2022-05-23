@@ -17,8 +17,11 @@ import {
     AddCircle,
     Create
 } from '@mui/icons-material';
+import Moment from 'react-moment';
+import moment from 'moment';
 
 import Service from '../services/remedy.service';
+import DateHelper from '../helpers/date.helper';
 
 const units = ['mg', 'ml', 'comprimido', 'cápsula'];
 
@@ -35,6 +38,8 @@ const RemedyCrud = () => {
     const [dosageField, setDosageField] = useState('');
     const [unitField, setUnitField] = useState('mg');
     const [frequencyField, setFrequencyField] = useState('');
+    const [startDateField, setStartDateField] = useState('');
+    const [periodField, setPeriodField] = useState('');
 
     useEffect(() => {
         retrieveRemedies(page);
@@ -54,18 +59,32 @@ const RemedyCrud = () => {
         return dosageStr;
     }
 
-    const renderCells = (params) => {
+    const renderDateCell = (params) => {
+        return (
+            <Box
+                container
+                spacing={0}
+                alignItems='center'
+            >
+                <Moment format='DD/MM/YYYY'>
+                    {params.value}
+                </Moment>
+            </Box>
+        );
+    }
+
+    const renderActionCells = (params) => {
         return (
             <Grid
                 container
                 spacing={0}
                 alignItems='center'
             >
-                <Grid item xs={9}>
+                <Grid item xs={6}>
                     {params.row.frequency}
                 </Grid >
 
-                <Grid item xs={3}>
+                <Grid item xs={6}>
                     <Tooltip title='Editar' placement='top-start'>
                         <IconButton
                             aria-label='Editar'
@@ -131,11 +150,21 @@ const RemedyCrud = () => {
     }
 
     const save = () => {
+        const dateArray = startDateField.split('/');
+        const day = dateArray[0];
+        const month = dateArray[1] - 1;
+        const year = dateArray[2];
+        const startDate = new Date(year, month, day);
+        const period = parseInt(periodField, 10);
+        const endDate = moment(startDate).add(period - 1, 'days').toDate();
+
         const rmd = {
             name: nameField,
             dosage: dosageField.replace(',', '.'),
             unit: unitField,
-            frequency: frequencyField
+            frequency: frequencyField,
+            startDate: startDate,
+            endDate: endDate
         }
 
         if (editId) {
@@ -161,15 +190,25 @@ const RemedyCrud = () => {
         setDosageField('');
         setUnitField('mg');
         setFrequencyField('');
+        setStartDateField('');
+        setPeriodField('');
         setViewForm(false);
     }
 
     const showForm = (rmd) => {
-        setViewForm(true);
         setNameField(rmd?.name || '');
         setDosageField(rmd?.dosage.toString().replace('.', ',') || '');
         setUnitField(rmd?.unit || 'mg');
         setFrequencyField(rmd?.frequency || '');
+        setStartDateField(rmd ? moment(rmd.startDate).format('DD/MM/YYYY') : '');
+
+        let period = '';
+        if (rmd) {
+            period = moment(rmd.endDate).diff(moment(rmd.startDate), 'days') + 1;
+        }
+
+        setPeriodField(period);
+        setViewForm(true);
     }
 
     const onChangeDosage = (event) => {
@@ -183,7 +222,7 @@ const RemedyCrud = () => {
             valueArray.shift();
         }
 
-        while (valueArray.length < 1) {
+        while (valueArray.length < 2) {
             valueArray.unshift('0');
         }
 
@@ -209,6 +248,15 @@ const RemedyCrud = () => {
         setFrequencyField(event.target.value.replace(/[^0-9]/g, ''));
     }
 
+    const onChangePeriod = (event) => {
+        setPeriodField(event.target.value.replace(/[^0-9]/g, ''));
+    }
+
+    const onChangeStartDate = (event) => {
+        const startDate = DateHelper.formatDate(event.target.value);;
+        setStartDateField(startDate);
+    }
+
     const columns = [
         {
             field: 'name',
@@ -222,11 +270,23 @@ const RemedyCrud = () => {
             flex: 1
         },
         {
+            field: 'startDate',
+            headerName: 'Data de início',
+            flex: 1,
+            renderCell: renderDateCell
+        },
+        {
+            field: 'endDate',
+            headerName: 'Data fim',
+            flex: 1,
+            renderCell: renderDateCell
+        },
+        {
             field: 'frequency',
             headerName: 'Vezes ao dia',
             flex: 1,
-            renderCell: renderCells
-        },
+            renderCell: renderActionCells
+        }
     ];
 
     return (
@@ -256,50 +316,72 @@ const RemedyCrud = () => {
                             Adicionar remédio
                         </Button>
                     ) : (
-                        <Box style={{ display: 'flex', alignItems: 'center' }} justifyContent='space-around'>
-                            <TextField
-                                required
-                                label='Nome'
-                                variant='standard'
-                                value={nameField}
-                                onChange={(event) => setNameField(event.target.value)}
-                            />
-
-                            <TextField
-                                required
-                                label='Dosagem'
-                                variant='standard'
-                                value={dosageField}
-                                onChange={onChangeDosage}
-                            />
-
-                            <FormControl sx={{ m: 1, minWidth: 100 }}>
-                                <InputLabel id='select-unit-label'>Unidade</InputLabel>
-                                <Select
-                                    id='select-unit'
-                                    labelId='select-unit-label'
-                                    value={unitField}
+                        <Box  >
+                            <Box style={{ display: 'flex', alignItems: 'center' }}>
+                                <TextField
+                                    required
+                                    label='Nome'
                                     variant='standard'
-                                    onChange={(event) => setUnitField(event.target.value)}>
-                                    {units.map(unit => {
-                                        return (
-                                            <MenuItem key={unit} value={unit}>
-                                                {unit}
-                                            </MenuItem>
-                                        );
-                                    })}
-                                </Select>
-                            </FormControl>
+                                    value={nameField}
+                                    onChange={(event) => setNameField(event.target.value)}
+                                />
 
-                            <TextField
-                                required
-                                label='Frequência ao dia'
-                                variant='standard'
-                                value={frequencyField}
-                                onChange={onChangeFrequency}
-                            />
+                                <TextField
+                                    sx={{ ml: 1 }}
+                                    required
+                                    label='Dosagem'
+                                    variant='standard'
+                                    value={dosageField}
+                                    onChange={onChangeDosage}
+                                />
+
+                                <FormControl sx={{ ml: 1, minWidth: 100 }}>
+                                    <InputLabel id='select-unit-label'>Unidade</InputLabel>
+                                    <Select
+                                        id='select-unit'
+                                        labelId='select-unit-label'
+                                        value={unitField}
+                                        variant='standard'
+                                        onChange={(event) => setUnitField(event.target.value)}>
+                                        {units.map(unit => {
+                                            return (
+                                                <MenuItem key={unit} value={unit}>
+                                                    {unit}
+                                                </MenuItem>
+                                            );
+                                        })}
+                                    </Select>
+                                </FormControl>
+                            </Box>
+                            <Box style={{ display: 'flex', alignItems: 'center' }}>
+                                <TextField
+                                    required
+                                    label='Frequência diária'
+                                    variant='standard'
+                                    value={frequencyField}
+                                    onChange={onChangeFrequency}
+                                />
+
+                                <TextField
+                                    sx={{ ml: 1, display: { lg: 'block', sm: 'none', md: 'none' } }}
+                                    required
+                                    label='Data de início'
+                                    variant='standard'
+                                    value={startDateField}
+                                    onChange={onChangeStartDate}
+                                />
+
+                                <TextField
+                                    sx={{ ml: 1 }}
+                                    required
+                                    label='Período em dias'
+                                    variant='standard'
+                                    value={periodField}
+                                    onChange={onChangePeriod}
+                                />
+                            </Box>
                             <Button
-                                sx={{ mt: 2, ml: 2 }}
+                                sx={{ mt: 2 }}
                                 variant='outlined'
                                 startIcon={<AddCircle />}
                                 onClick={() => save()}
